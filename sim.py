@@ -24,23 +24,11 @@ if (len(sys.argv) - 1) == 10:
     print("")
     for arg in sys.argv[1::2]:
 
-		# Cache size in KB
-        if 's' in arg:
-            cache_size = sys.argv[4]
-		# Block size
-        elif 'b' in arg:
-            block_size = sys.argv[6]
-		# Associativity
-        elif 'a' in arg:
-            associativity = sys.argv[8]
-		# Replacement policy
-        elif 'r' in arg:
-            replacement_policy = sys.argv[10]
         #check what to do for each argument
         # (–f) trace1.txt (–s) 1024 (–b) 16 (–a) 2 (–r) RR
         #   1       2       3    4    5   6   7  8   9  10        
         # Trace file name
-        elif "f" in arg:
+        if "f" in arg:
             filename = sys.argv[2]
             #use try except to see if file exists
             try:
@@ -84,6 +72,22 @@ if (len(sys.argv) - 1) == 10:
             except IOError:
                 print("Error opening file: " + sys.argv[2] + ".")
                 sys.exit(1)
+
+        # Cache size in KB
+        elif 's' in arg:
+            cache_size = sys.argv[4]
+
+        # Block size
+        elif 'b' in arg:
+            block_size = sys.argv[6]
+
+        # Associativity
+        elif 'a' in arg:
+            associativity = sys.argv[8]
+
+        # Replacement policy
+        elif 'r' in arg:
+            replacement_policy = sys.argv[10]
 
     totaladdrspaceb = 32 #addr space in bits assumed to be 32
     c2 = powers(int(cache_size)) + 10 #cache in KB i.e. 1024 = 20
