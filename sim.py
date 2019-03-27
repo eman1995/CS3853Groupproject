@@ -16,7 +16,7 @@ def powers(x):
         x /= 2
         i += 1
     return i
-
+count = 0
 if (len(sys.argv) - 1) == 10:
     
     #for every other argument not including (sim.py) in the command line Ex. (–f) trace1.txt (–s) 1024 (–b) 16 (–a) 2 (–r) RR
@@ -66,7 +66,9 @@ if (len(sys.argv) - 1) == 10:
                                 print("Address: 0x" + address + ", length =", length, "No data writes/reads occurred.")
                             else:
                                 print("Address: 0x" + address + ", length =", length, "Data write at 0x" + dstM, "length = 4 bytes.")
-                        
+                        count += 1
+                        if count > 43:
+                            break
             except IOError:
                 print("Error opening file: " + sys.argv[2] + ".")
                 sys.exit(1)
