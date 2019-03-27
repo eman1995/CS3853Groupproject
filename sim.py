@@ -35,33 +35,37 @@ if (len(sys.argv) - 1) == 10:
                 with open(filename, 'r') as inputFile:
                     #for every line in the file
                     for line in inputFile:
-                        readNextLine = 0
-                        tokens = line.split();
                         
-                        # using regular expression to find non-digits (\D) and replace them with nothing A.K.A. (delete)
-                        length = re.sub(r'\D', "", tokens[1])
-                        address = tokens[2]
-                        
-                        # read the next line while still in the same iteration
-                        # to grab the dstM and srcM. (this also moves the file pointer) 
-                        tokens2 = inputFile.readline().split()
-                        readNextLine = 1
-
-                        dstM = tokens2[1]
-                        srcM = tokens2[4]
-                        
-                        isThereData1 = 1
-                        isThereData2 = 1
-
-                        if int(dstM, 16) == 0 and readNextLine == 1:
-                            isThereData1 = 0
-                        if int(srcM, 16) == 0 and readNextLine == 1:
-                            isThereData2 = 0
-
-                        if isThereData1 == 0 and isThereData2 == 0:
-                            print("Address: 0x" + address + ", length =", length, "No data writes/reads occurred.")
+                        if line == "\n":
+                            print("")
                         else:
-                            print("Address: 0x" + address + ", length =", length, "Data write at 0x" + dstM, "length = 4 bytes.")
+                            readNextLine = 0
+                            tokens = line.split();
+
+                            # using regular expression to find non-digits (\D) and replace them with nothing A.K.A. (delete)
+                            length = re.sub(r'\D', "", tokens[1])
+                            address = tokens[2]
+                        
+                            # read the next line while still in the same iteration
+                            # to grab the dstM and srcM. (this also moves the file pointer) 
+                            tokens2 = inputFile.readline().split()
+                            readNextLine = 1
+
+                            dstM = tokens2[1]
+                            srcM = tokens2[4]
+                        
+                            isThereData1 = 1
+                            isThereData2 = 1
+
+                            if int(dstM, 16) == 0 and readNextLine == 1:
+                                isThereData1 = 0
+                            if int(srcM, 16) == 0 and readNextLine == 1:
+                                isThereData2 = 0
+
+                            if isThereData1 == 0 and isThereData2 == 0:
+                                print("Address: 0x" + address + ", length =", length, "No data writes/reads occurred.")
+                            else:
+                                print("Address: 0x" + address + ", length =", length, "Data write at 0x" + dstM, "length = 4 bytes.")
                         
             except IOError:
                 print("Error opening file: " + sys.argv[2] + ".")
