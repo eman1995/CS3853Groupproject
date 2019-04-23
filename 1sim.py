@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Cristian Garcia
+# Cristian Garcia, Emmanuel Espinosa-Tello, Tyler Worch
 
 
 
@@ -20,7 +20,7 @@ def powers(x):
 miss =0
 hit =0
 total =0
-#cacheasso = {}
+#cacheasso = {} this is a dictionary
 def blockselect(index):
     '''Based on replacement policy will return a position in the cache for the tag to go in'''
     if replacement_policy == 'RR':
@@ -42,8 +42,61 @@ def blockselect(index):
     else:
         print("Unknown Replacement Policy: Exiting")
         exit(1)
-    
 
+def checkempt(ca, index):
+    for i in range(len(ca[index])):
+        if ca[index][i] == 0:
+            return i
+    return -1
+
+def read(l, index, offset):
+    indoff = (index << b2) + offset #shift index by offset bits to make room for offset
+    i = index
+    newindexlist = []
+    while(l != 0):
+        l -= 1
+        indoff +=1
+        nindex = indoff >> b2
+        if nindex != i:
+            newindexlist.append(nindex)
+            i = nindex
+    return newindexlist
+
+def indexover(index, tag, ca):
+    global hit, miss
+    if index in cachevalid:
+        if tag in ca[index]:
+            hit +=1
+            #print("indexover: {}".format(hit))
+            return
+        else:
+            miss +=1
+            position = checkempt(ca, index)
+            if position != -1:
+                ca[index][position] = tag
+                return
+            else:
+                position = blockselect(index)
+                ca[index][position] = tag
+                return
+    else:
+        miss +=1
+        cachevalid[index] = 1
+        ca[index][0] = tag
+        return
+        
+def newindexr(inli, tag, ca):
+    '''takes in result of new index'''
+    global total
+    if not inli:
+        return
+
+    for index in inli:
+        indexover(index, tag, ca)
+        total +=1
+    return
+
+#cachevalid{}, 
 def cache(l, a, ca):
     '''function that sims the cache'''
     index = int(a,16) >> b2 & 2**indexbits - 1 #gives index in hex
@@ -52,34 +105,35 @@ def cache(l, a, ca):
     #print("{} {} {}".format(index, offset, tag))
     
     global hit, miss
-    blch = blockselect(index) #blch = block chosen
-    
-    if ca[index][blch] & 0x80000000 == 0x80000000: #32 bit address space
-        if ca[index][blch] & (2**(b2+indexbits) - 1) == tag:
-            hit += 1
-            if (int(l)+offset) > 2**b2-1:
-                ''''''
+    #blch = blockselect(index) #blch = block chosen
+    if index in cachevalid: 
+        if tag in ca[index]:
+            hit +=1
+            #print("cache: {}".format(hit))
+            newindexr(read(l, index, offset), tag, ca)
+            return
         else:
-            miss += 1
-            ca[index][blch] = tag + 0x80000000
+            miss +=1 
+            position = checkempt(ca,index)
+            if position != -1:
+                ca[index][position] = tag
+                newindexr(read(l, index, offset), tag, ca)
+                return
+                #call read here
+            else:
+                position = blockselect(index)
+                ca[index][position] = tag
+                newindexr(read(l, index, offset), tag, ca)
+                return
+                #call read here
     else:
-        miss +=1
-        ca[index][blch] = tag + 0x80000000
-    '''
-    if index in cv:
-        if ct[index] == tag:
-            hit += 1
-            if (int(l)+int(offset,16)) > 0xf:
-                #print(hex((int(l)+int(offset,16))))
-                
-        else:
-            miss += 1
-            ct[index] == tag
-    else:
-        ct[index] = tag
-        cv[index] = 1
         miss += 1
-    '''
+        cachevalid[index] = 1
+        ca[index][0] = tag #does not matter if index is empty will always goto first one
+        newindexr(read(l, index, offset), tag, ca)
+        return
+        #read?
+
     #print("{} {} {}".format(tag, index, offset))
     return 
 
@@ -105,7 +159,7 @@ if (len(sys.argv) - 1) == 10:
 
     totaladdrspaceb = 32 #addr space in bits assumed to be 32
     c2 = powers(int(cache_size)) + 10 #cache in KB i.e. 1024 = 20
-    b2 = powers(int(block_size)) #bytes per block in 2 i.e. 16 = 4
+    b2 = powers(int(block_size)) #bytes per block in 2 i.e. 16 = 4 aka bits
     blksin2 = (c2 - b2) # #of blocks in 2 (2^20)/(2^4) = 2^16 or 16
     blksin2b = blksin2 - 10 # # of blocks rep without kilobytes i.e 16 - 10 = 2^6
     numblksKB = 2**blksin2b
@@ -119,7 +173,9 @@ if (len(sys.argv) - 1) == 10:
     imp = overhead + (2**c2) # overhead plus cache size
  
     cachearray = [[0 for j in range(int(associativity))] for i in range(trueindexsize)]
-    cacheasso = {}
+    cacheasso = {} #simply holds the block the replacement policy chose
+    cachevalid = {} #is index valid, holds only 1's
+    
     try:
         with open(filename, 'r') as inputFile:
         #for every line in the file
@@ -139,7 +195,7 @@ if (len(sys.argv) - 1) == 10:
                     # to grab the dstM and srcM. (this also moves the file pointer) 
                     tokens2 = inputFile.readline().split()
                     readNextLine = 1
-
+                    
                     dstM = tokens2[1]
                     srcM = tokens2[4]
                         
@@ -148,10 +204,17 @@ if (len(sys.argv) - 1) == 10:
 
                     if int(dstM, 16) == 0 and readNextLine == 1:
                         isThereData1 = 0
+                    else:
+                        cache(4, dstM, cachearray)
+                        total +=1
+
                     if int(srcM, 16) == 0 and readNextLine == 1:
                         isThereData2 = 0
+                    else:
+                        cache(4, srcM, cachearray)
+                        total +=1
                     
-                    cache(length, address, cachearray)
+                    cache(int(length), address, cachearray)
                     total +=1
                     if isThereData1 == 0 and isThereData2 == 0:
                         ''''''
@@ -163,7 +226,7 @@ if (len(sys.argv) - 1) == 10:
         print("Error opening file: " + sys.argv[2] + ".")
         sys.exit(1)
         
-    #print(hit) 
+    #print("{} {} {}".format(hit, miss, total))
     hitrate = hit/total *100
     missrate = miss/total *100
 
@@ -190,8 +253,8 @@ if (len(sys.argv) - 1) == 10:
     print("Implementation Memory Size: {:,} bytes".format(int(imp)))
     print("")
     print("----- Results -----")
-    print("Cache Hit Rate: {:.1f}%".format(hitrate))
-    print("Cache Miss Rate: {:.1f}%".format(missrate))
+    print("Cache Hit Rate: {:.4f}%".format(hitrate))
+    print("Cache Miss Rate: {:.4f}%".format(missrate))
 else:
     print("Error: Argument(s) not in range.")
     sys.exit(1)
